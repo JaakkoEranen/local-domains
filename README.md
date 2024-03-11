@@ -33,7 +33,7 @@ Local Domains is available for download from the [Releases](https://github.com/J
 
 ## License
 
-Local Domains is released under the ISC License. The full license text is available in the LICENSE file in the repository. By using Local Domains, you agree to accept all responsibility and liability for any damages or losses that may arise from its use.
+Local Domains is released under the ISC License. By using Local Domains, you agree to accept all responsibility and liability for any damages or losses that may arise from its use.
 
 ## Disclaimer
 

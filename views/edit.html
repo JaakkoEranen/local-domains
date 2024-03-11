@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Domain and Port</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <h1>Edit Domain</h1>
+  <form id="form">
+    <div>
+      <input type="text" id="domainInput" placeholder="Domain">
+      <input type="number" id="portInput" placeholder="Port">
+    </div>
+    <input type="hidden" id="indexInput">
+    <button type="submit">Save</button>
+  </form>
+  <div id="loadingIndicator" style="display: none;">
+    <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+    Editing...
+  </div>
+  <div id="error" style="display: none;"></div>
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    window.onload = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const domain = urlParams.get('domain');
+      const port = urlParams.get('port');
+      const index = urlParams.get('index');
+
+      document.getElementById('domainInput').value = domain;
+      document.getElementById('portInput').value = port;
+      document.getElementById('indexInput').value = index;
+    };
+
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const domain = document.getElementById('domainInput').value;
+      const port = document.getElementById('portInput').value;
+      const index = document.getElementById('indexInput').value;
+
+      document.getElementById('loadingIndicator').style.display = 'flex';
+      document.getElementById('form').style.display = 'none';
+
+      ipcRenderer.send('edit-domain', { domain, port, index });
+    });
+
+    ipcRenderer.on('edit-complete', () => {
+      window.close();
+    });
+
+    ipcRenderer.on('edit-error', (error) => {
+      const errorField = document.getElementById('error')
+
+      document.getElementById('loadingIndicator').style.display = 'none';
+      errorField.style.display = 'flex';
+      errorField.innerHTML += error.message || "An unexpected error occurred.";
+      
+      console.error('Update error:', error);
+    });
+  </script>
+</body>
+</html>

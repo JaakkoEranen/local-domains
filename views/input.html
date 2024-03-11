@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Enter Domain and Port</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <h1>Add Domain</h1>
+  <form id="form">
+    <div>
+      <input type="text" id="domainInput" placeholder="Domain">
+      <input type="number" id="portInput" placeholder="Port">
+    </div>
+    <button type="submit">Add</button>
+  </form>
+  <div id="loadingIndicator" style="display: none;">
+    <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+    Adding...
+  </div>
+  <div id="error" style="display: none;"></div>
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const domain = document.getElementById('domainInput').value;
+      const port = document.getElementById('portInput').value;
+
+      document.getElementById('loadingIndicator').style.display = 'flex';
+      document.getElementById('form').style.display = 'none';
+
+      ipcRenderer.send('add-domain', { domain, port });
+    });
+
+    ipcRenderer.on('add-complete', () => {
+      window.close();
+    });
+
+    ipcRenderer.on('add-error', (error) => {
+      const errorField = document.getElementById('error')
+
+      document.getElementById('loadingIndicator').style.display = 'none';
+      errorField.style.display = 'flex';
+      errorField.innerHTML += error.message || "An unexpected error occurred.";
+      
+      console.error('Update error:', error);
+    });
+  </script>
+</body>
+</html>

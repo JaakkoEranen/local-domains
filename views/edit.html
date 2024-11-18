@@ -11,6 +11,10 @@
       <input type="text" id="domainInput" placeholder="Domain">
       <input type="number" id="portInput" placeholder="Port">
     </div>
+    <div id="locations">
+      <h3>Locations</h3>
+    </div>
+    <button type="button" id="addLocationBtn">Add Location</button>
     <input type="hidden" id="indexInput">
     <button type="submit">Save</button>
   </form>
@@ -22,35 +26,88 @@
   <script>
     const { ipcRenderer } = require('electron');
 
+    // Populate the form with existing data
     window.onload = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const domain = urlParams.get('domain');
       const port = urlParams.get('port');
       const index = urlParams.get('index');
+      const locations = JSON.parse(urlParams.get('locations') || '[]');
 
       document.getElementById('domainInput').value = domain;
       document.getElementById('portInput').value = port;
       document.getElementById('indexInput').value = index;
+
+      const locationsContainer = document.getElementById('locations');
+      locations.forEach((loc, idx) => {
+        addLocationField(loc.path, loc.proxyPass, idx);
+      });
     };
 
+    // Add a new location field
+    document.getElementById('addLocationBtn').addEventListener('click', () => {
+      addLocationField('', '', null);
+    });
+
+    // Function to add a location field
+    function addLocationField(path = '', proxyPass = '', idx = null) {
+      const locationsContainer = document.getElementById('locations');
+      const locationDiv = document.createElement('div');
+      locationDiv.classList.add('location');
+      locationDiv.dataset.index = idx !== null ? idx : Date.now(); // Unique identifier
+
+      locationDiv.innerHTML = `
+        <div class="location-inputs">
+          <label for="location-path-${idx}">Path</label>
+          <input id="location-path-${idx}" type="text" class="location-path" value="${path}" placeholder="Path (e.g., /websocket)">
+          <label for="location-proxypass-${idx}">Proxy Pass</label>
+          <input id="location-proxypass-${idx}" type="text" class="location-proxypass" value="${proxyPass}" placeholder="Proxy Pass (e.g., ws://127.0.0.1/websocket)">
+        </div>
+        <button class="removeLocationBtn">X</button>
+      `;
+
+      // Add event listener for removing the location
+      locationDiv.querySelector('.removeLocationBtn').addEventListener('click', () => {
+        locationsContainer.removeChild(locationDiv);
+      });
+
+      locationsContainer.appendChild(locationDiv);
+    }
+
+    // Handle form submission
     document.getElementById('form').addEventListener('submit', (e) => {
       e.preventDefault();
+
       const domain = document.getElementById('domainInput').value;
       const port = document.getElementById('portInput').value;
       const index = document.getElementById('indexInput').value;
 
+      // Collect updated locations
+      const locationElements = document.querySelectorAll('#locations .location');
+      const locations = Array.from(locationElements).map(locationEl => {
+        const path = locationEl.querySelector('.location-path').value;
+        const proxyPass = locationEl.querySelector('.location-proxypass').value;
+
+        if (path && proxyPass) {
+          return { path: path, proxyPass: proxyPass };
+        }
+        return null;
+      }).filter(location => location); // Filter out empty entries
+
       document.getElementById('loadingIndicator').style.display = 'flex';
       document.getElementById('form').style.display = 'none';
 
-      ipcRenderer.send('edit-domain', { domain, port, index });
+      ipcRenderer.send('edit-domain', { domain, port, index, locations });
     });
 
+    // Handle successful completion
     ipcRenderer.on('edit-complete', () => {
       window.close();
     });
 
+    // Handle errors
     ipcRenderer.on('edit-error', (error) => {
-      const errorField = document.getElementById('error')
+      const errorField = document.getElementById('error');
 
       document.getElementById('loadingIndicator').style.display = 'none';
       errorField.style.display = 'flex';

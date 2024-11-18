@@ -13,14 +13,14 @@ let domains = [];
 
 const browserWindowOptions = {
   width: 381,
-  height: 277,
+  height: 600,
   resizable: false,
   webPreferences: {
     nodeIntegration: true,
     contextIsolation: false,
     enableRemoteModule: true
   }
-}
+};
 
 const createInputWindow = () => {
   let inputWin = new BrowserWindow(browserWindowOptions);
@@ -28,7 +28,7 @@ const createInputWindow = () => {
   const inputPath = path.join(__dirname, './views/input.html');
 
   inputWin.loadFile(inputPath);
-}
+};
 
 const createTray = () => {
   const iconPath = path.join(__dirname, './assets/IconTemplate.png');
@@ -79,8 +79,11 @@ const updateTrayMenu = () => {
 const editDomain = index => {
   let editWin = new BrowserWindow(browserWindowOptions);
 
-  editWin.loadURL(`file://${__dirname}/views/edit.html?domain=${domains[index].domain}&port=${domains[index].port}&index=${index}`);
-}
+  const domainData = domains[index];
+  const locations = encodeURIComponent(JSON.stringify(domainData.locations || []));
+  
+  editWin.loadURL(`file://${__dirname}/views/edit.html?domain=${domainData.domain}&port=${domainData.port}&index=${index}&locations=${locations}`);
+};
 
 const removeDomain = async (domain, index) => {
   const apacheConfigCommand = await removeDomainFromApacheConfig(domain);
@@ -97,15 +100,15 @@ const removeDomain = async (domain, index) => {
 
 
 const setIpcMainListeners = () => {
-  ipcMain.on('add-domain', async (event, { domain, port }) => {
+  ipcMain.on('add-domain', async (event, { domain, port, locations }) => {
     try {
-      const apacheConfigCommand = addDomainToApacheConfig(domain, port);
+      const apacheConfigCommand = addDomainToApacheConfig(domain, port, locations);
       const hostsFileCommand = await addDomainToHostsFile(domain);
       const restartCommand = restartApache();
       
       await executeSudoCommands([apacheConfigCommand, hostsFileCommand, restartCommand])
   
-      domains.push({ domain, port });
+      domains.push({ domain, port, locations });
       store.set('domains', domains);
   
       updateTrayMenu();
@@ -116,18 +119,18 @@ const setIpcMainListeners = () => {
     }
   });
 
-  ipcMain.on('edit-domain', async (event, { domain, port, index }) => {
+  ipcMain.on('edit-domain', async (event, { domain, port, index, locations }) => {
     const domainIndex = parseInt(index, 10);
 
     if (domainIndex >= 0 && domainIndex < domains.length) {
       try {
-        const editApacheConfigCommand = await editDomainInApacheConfig(domains[domainIndex].domain, domain, port)
+        const editApacheConfigCommand = await editDomainInApacheConfig(domains[domainIndex].domain, domain, port, locations)
         const editHostsFileCommand = await editDomainInHostsFile(domains[domainIndex].domain, domain)
         const restartCommand = restartApache()
 
         await executeSudoCommands([editApacheConfigCommand, editHostsFileCommand, restartCommand])
 
-        domains[domainIndex] = { domain, port };
+        domains[domainIndex] = { domain, port, locations };
         store.set('domains', domains);
 
         updateTrayMenu();

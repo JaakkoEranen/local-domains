@@ -11,22 +11,33 @@ const parseApacheConfigForDomainsAndPorts = () => {
           return;
         }
   
-        const virtualHostRegex = /<VirtualHost \*:80>[\s\S]*?ServerName (\S+)[\s\S]*?ProxyPass \/ http:\/\/127\.0\.0\.1:(\d+)\/[\s\S]*?<\/VirtualHost>/g;
+        const virtualHostRegex = /<VirtualHost \*:80>[\s\S]*?ServerName (\S+)[\s\S]*?ProxyPass \/ http:\/\/127\.0\.0\.1:(\d+)\/([\s\S]*?)<\/VirtualHost>/g;
+        const locationRegex = /<Location "(.*?)">\s*ProxyPass "(.*?)"\s*<\/Location>/g;
   
         let matches;
         const domainsAndPorts = [];
-        
+  
         while ((matches = virtualHostRegex.exec(data)) !== null) {
           const domain = matches[1];
           const port = parseInt(matches[2], 10);
+          const rawLocations = matches[3];
   
-          domainsAndPorts.push({ domain, port });
+          const locations = [];
+          let locationMatch;
+          while ((locationMatch = locationRegex.exec(rawLocations)) !== null) {
+            locations.push({
+              path: locationMatch[1],
+              proxyPass: locationMatch[2],
+            });
+          }
+  
+          domainsAndPorts.push({ domain, port, locations });
         }
   
         resolve(domainsAndPorts);
       });
     });
-}
+  };
 
 const ensureHostsFileComments = async () => {
     try {

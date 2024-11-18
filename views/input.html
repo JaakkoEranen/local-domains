@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Enter Domain and Port</title>
+  <title>Add Domain and Port</title>
   <link rel="stylesheet" href="../assets/styles.css">
 </head>
 <body>
   <h1>Add Domain</h1>
   <form id="form">
     <div>
-      <input type="text" id="domainInput" placeholder="Domain">
-      <input type="number" id="portInput" placeholder="Port">
+      <input type="text" id="domainInput" placeholder="Domain" required>
+      <input type="number" id="portInput" placeholder="Port" required>
     </div>
+    <div id="locations">
+      <h3>Locations</h3>
+    </div>
+    <button type="button" id="addLocationBtn">Add Location</button>
     <button type="submit">Add</button>
   </form>
   <div id="loadingIndicator" style="display: none;">
@@ -21,29 +25,83 @@
   <script>
     const { ipcRenderer } = require('electron');
 
+    let locationCounter = 0; // Counter for unique IDs for location fields
+
+    // Add event listener for adding new location fields
+    document.getElementById('addLocationBtn').addEventListener('click', () => {
+      const locationsContainer = document.getElementById('locations');
+      const newLocation = document.createElement('div');
+      newLocation.classList.add('location');
+
+      // Create unique IDs for each location field
+      const pathId = `location-path-${locationCounter}`;
+      const proxyPassId = `location-proxypass-${locationCounter}`;
+      locationCounter++;
+
+      newLocation.innerHTML = `
+        <div class="location-inputs">
+          <label for="${pathId}">Path</label>
+          <input id="${pathId}" type="text" class="location-path" placeholder="Path (e.g., /websocket)" required>
+          <label for="${proxyPassId}">Proxy Pass</label>
+          <input id="${proxyPassId}" type="text" class="location-proxypass" placeholder="Proxy Pass (e.g., ws://127.0.0.1/websocket)" required>
+        </div>
+        <button class="removeLocationBtn">X</button>
+      `;
+
+      // Add remove functionality
+      newLocation.querySelector('.removeLocationBtn').addEventListener('click', () => {
+        locationsContainer.removeChild(newLocation);
+      });
+
+      locationsContainer.appendChild(newLocation);
+    });
+
+    // Handle form submission
     document.getElementById('form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const domain = document.getElementById('domainInput').value;
-      const port = document.getElementById('portInput').value;
 
+      const domain = document.getElementById('domainInput').value.trim();
+      const port = document.getElementById('portInput').value.trim();
+
+      if (!domain || !port) {
+        alert('Please fill out the domain and port fields.');
+        return;
+      }
+
+      // Collect locations
+      const locationElements = document.querySelectorAll('#locations .location');
+      const locations = Array.from(locationElements).map(locationEl => {
+        const path = locationEl.querySelector('.location-path').value.trim();
+        const proxyPass = locationEl.querySelector('.location-proxypass').value.trim();
+
+        if (path && proxyPass) {
+          return { path, proxyPass };
+        }
+        return null;
+      }).filter(location => location); // Filter out empty entries
+
+      // Show loading indicator
       document.getElementById('loadingIndicator').style.display = 'flex';
       document.getElementById('form').style.display = 'none';
 
-      ipcRenderer.send('add-domain', { domain, port });
+      // Send data to backend
+      ipcRenderer.send('add-domain', { domain, port, locations });
     });
 
+    // Handle successful completion
     ipcRenderer.on('add-complete', () => {
       window.close();
     });
 
+    // Handle errors
     ipcRenderer.on('add-error', (error) => {
-      const errorField = document.getElementById('error')
+      const errorField = document.getElementById('error');
 
       document.getElementById('loadingIndicator').style.display = 'none';
       errorField.style.display = 'flex';
-      errorField.innerHTML += error.message || "An unexpected error occurred.";
+      errorField.innerHTML = error.message || "An unexpected error occurred.";
       
-      console.error('Update error:', error);
+      console.error('Add error:', error);
     });
   </script>
 </body>

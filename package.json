@@ -1,10 +1,11 @@
 {
   "name": "local-domains",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "nodemon --watch . --exec electron .",
     "build": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -25,14 +26,17 @@
     "mac": {
       "category": "public.app-category.utilities",
       "icon": "assets/LocalDomains.icns",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     }
   },
   "author": "Jaakko Eränen",
   "license": "ISC",
   "devDependencies": {
     "electron": "^29.1.1",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "nodemon": "^3.1.7"
   },
   "dependencies": {
     "electron-store": "^8.2.0",

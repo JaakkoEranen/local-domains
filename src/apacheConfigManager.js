@@ -37,17 +37,14 @@ const editDomainInApacheConfig = async (oldDomain, newDomain, newPort, locations
     try {
         let configContent = await fs.promises.readFile(apacheConfigPath, { encoding: 'utf-8' });
 
-        // Regex löytää oikean VirtualHost-lohkon
         const domainConfigRegex = new RegExp(
             `(<VirtualHost \\*:80>[\\s\\S]*?ServerName ${oldDomain}[\\s\\S]*?ProxyPass / http:\\/\\/127\\.0\\.0\\.1:${newPort}\\/\\n[\\s\\S]*?ProxyPassReverse / http:\\/\\/127\\.0\\.0\\.1:${newPort}\\/)([\\s\\S]*?)(\\n</VirtualHost>)`,
             'g'
         );
 
         let updatedConfigContent = configContent.replace(domainConfigRegex, (match, start, middle, end) => {
-            // Poista vain olemassa olevat Location-lohkot
             const strippedMiddle = middle.replace(/<Location ".*?">[\s\S]*?<\/Location>/g, '').trim();
 
-            // Luo uudet Location-lohkot annetuista locations-tiedoista
             const locationConfigs = locations
                 .map(
                     loc => `
@@ -57,7 +54,6 @@ const editDomainInApacheConfig = async (oldDomain, newDomain, newPort, locations
                 )
                 .join('');
 
-            // Palauta sisältö ilman tyhjiä rivejä
             return `${start}${strippedMiddle}${locationConfigs}${end}`;
         });
 
